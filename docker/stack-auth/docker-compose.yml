@@ -1,0 +1,75 @@
+# Created with assistance from Claude AI (Anthropic)
+# Date: 2025-05-16
+
+version: "3.8"
+
+services:
+  # Stack Auth service
+  stack-auth:
+    image: stackauth/server:latest
+    ports:
+      - "8101:8101" # Dashboard UI
+      - "8102:8102" # API Backend
+    environment:
+      # Database connection
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXT_PUBLIC_STACK_API_URL=${NEXT_PUBLIC_STACK_API_URL}
+      - STACK_SECRET_SERVER_KEY=${STACK_SECRET_SERVER_KEY}
+
+      # Email settings from .env file
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inbucket:
+        condition: service_started
+        required: false # Won't fail if inbucket isn't running
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: stack_auth
+      POSTGRES_PASSWORD: stack_auth_password
+      POSTGRES_DB: stack_auth
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stack_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ================================================================
+  # DEVELOPMENT EMAIL: Local email testing service (Inbucket)
+  # Only runs when STACK_ENV=dev in .env file
+  # ================================================================
+  inbucket:
+    image: inbucket/inbucket:stable
+    ports:
+      - "8105:9000" # Web interface
+      - "2500:2500" # SMTP
+      - "1100:1100" # POP3
+    environment:
+      - INBUCKET_MAILBOXNAMING=full
+    profiles:
+      # This service runs when either:
+      # 1. When STACK_ENV=dev (development mode)
+      # 2. No STACK_ENV is set (defaults to dev)
+      - ${STACK_ENV:-dev}
+    # Will only start if STACK_ENV=dev
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: stack-auth-network

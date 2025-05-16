@@ -1,0 +1,209 @@
+#!/bin/bash
+# Script created with assistance from Claude AI (Anthropic)
+# Date: 2025-05-16
+
+# Stack Auth Management Script
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_color() {
+    printf "${2}${1}${NC}\n"
+}
+
+# Display help
+show_help() {
+    cat << EOF
+Stack Auth Management Script
+
+Usage: ./run-stack-auth.sh [COMMAND]
+
+Commands:
+    dev           Start Stack Auth in development mode (uses Inbucket)
+    prod          Start Stack Auth in production mode (uses email provider)
+    stop          Stop all Stack Auth services
+    logs          View all logs
+    logs [service] View logs for specific service
+    status        Show container status
+    db-shell      Access PostgreSQL shell
+    clean         Remove all containers and volumes
+
+Examples:
+    ./run-stack-auth.sh dev
+    ./run-stack-auth.sh prod
+    ./run-stack-auth.sh logs stack-auth
+EOF
+}
+
+# Check if .env file exists
+check_env_file() {
+    if [ ! -f "docker/stack-auth/.env" ]; then
+        print_color "⚠️ .env file not found! Creating from template..." "$YELLOW"
+        if [ -f "docker/stack-auth/.env.template" ]; then
+            cp docker/stack-auth/.env.template docker/stack-auth/.env
+            print_color "✅ Created .env file from template" "$GREEN"
+            print_color "⚠️ Please edit docker/stack-auth/.env with your settings!" "$YELLOW"
+        else
+            print_color "❌ .env.template not found! Please create docker/stack-auth/.env file manually" "$RED"
+            exit 1
+        fi
+    fi
+}
+
+# Update STACK_ENV in .env file
+update_env_mode() {
+    mode=$1
+    env_file="docker/stack-auth/.env"
+
+    # Check if STACK_ENV exists in .env
+    if grep -q "STACK_ENV=" "$env_file"; then
+        # Replace existing STACK_ENV line
+        sed -i "s/STACK_ENV=.*/STACK_ENV=$mode/" "$env_file"
+    else
+        # Add STACK_ENV line
+        echo "STACK_ENV=$mode" >> "$env_file"
+    fi
+
+    print_color "✅ Updated .env file with STACK_ENV=$mode" "$GREEN"
+}
+
+# Start development mode
+start_dev() {
+    print_color "Starting Stack Auth in DEVELOPMENT mode..." "$GREEN"
+
+    # Update .env file
+    update_env_mode "dev"
+
+    # Start with development profile
+    cd docker/stack-auth
+    docker-compose --profile dev up -d
+
+    print_color "✅ Stack Auth started in DEVELOPMENT mode" "$GREEN"
+    print_color "📊 Dashboard: http://localhost:8101" "$GREEN"
+    print_color "🔌 API: http://localhost:8102" "$GREEN"
+    print_color "📧 Email testing: http://localhost:8105" "$GREEN"
+    print_color "All emails will be captured by Inbucket" "$YELLOW"
+}
+
+# Start production mode
+start_prod() {
+    print_color "Starting Stack Auth in PRODUCTION mode..." "$GREEN"
+
+    # Update .env file
+    update_env_mode "prod"
+
+    # Check if production email settings are configured
+    env_file="docker/stack-auth/.env"
+    if grep -q "SMTP_HOST=inbucket" "$env_file"; then
+        print_color "⚠️ Warning: You are still using Inbucket for email in production!" "$YELLOW"
+        print_color "Please edit docker/stack-auth/.env to configure your production email settings" "$YELLOW"
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_color "Aborted" "$RED"
+            exit 1
+        fi
+    fi
+
+    # Start with production profile
+    cd docker/stack-auth
+    docker-compose --profile prod up -d
+
+    print_color "✅ Stack Auth started in PRODUCTION mode" "$GREEN"
+    print_color "📊 Dashboard: http://localhost:8101" "$GREEN"
+    print_color "🔌 API: http://localhost:8102" "$GREEN"
+    print_color "Using email settings from .env file" "$YELLOW"
+}
+
+# Stop all services
+stop() {
+    print_color "Stopping Stack Auth services..." "$YELLOW"
+    cd docker/stack-auth
+    docker-compose down
+    print_color "✅ Stack Auth services stopped" "$GREEN"
+}
+
+# View logs
+logs() {
+    cd docker/stack-auth
+    if [ -z "$1" ]; then
+        docker-compose logs -f
+    else
+        docker-compose logs -f "$1"
+    fi
+}
+
+# Show status
+status() {
+    print_color "Stack Auth Container Status:" "$GREEN"
+    cd docker/stack-auth
+    docker-compose ps
+}
+
+# Database shell
+db_shell() {
+    print_color "Connecting to PostgreSQL shell..." "$GREEN"
+    cd docker/stack-auth
+    docker-compose exec postgres psql -U stack_auth stack_auth
+}
+
+# Clean up
+clean() {
+    print_color "⚠️  This will remove all Stack Auth containers and volumes" "$RED"
+    print_color "All data will be lost. Are you sure? (y/N) " "$RED"
+    read -r response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        cd docker/stack-auth
+        docker-compose down -v
+        print_color "✅ Stack Auth cleaned up" "$GREEN"
+    else
+        print_color "Clean up canceled" "$YELLOW"
+    fi
+}
+
+# Main script logic
+main() {
+    # Check for .env file
+    check_env_file
+
+    if [ $# -eq 0 ]; then
+        show_help
+        exit 0
+    fi
+
+    command="$1"
+    case "$command" in
+        dev)
+            start_dev
+            ;;
+        prod)
+            start_prod
+            ;;
+        stop)
+            stop
+            ;;
+        logs)
+            logs "$2"
+            ;;
+        status)
+            status
+            ;;
+        db-shell)
+            db_shell
+            ;;
+        clean)
+            clean
+            ;;
+        *)
+            print_color "Unknown command: $command" "$RED"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
