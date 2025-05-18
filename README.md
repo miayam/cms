@@ -1,6 +1,6 @@
 # CMS Monorepo
 
-An all-in-one CMS platform for your side hustles (blogging, newsletters, subscription courses, membership sites, digital products, etc.) powered by Strapi and Stack Auth.
+An all-in-one, self-hosted CMS platform for your side hustles (blogging, newsletters, subscription courses, membership sites, digital products, etc.) powered by Strapi and Stack Auth.
 
 ## 🚀 Quick Start
 
