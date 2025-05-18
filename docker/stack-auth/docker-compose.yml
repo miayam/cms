@@ -1,35 +1,58 @@
 # Created with assistance from Claude AI (Anthropic)
-# Date: 2025-05-16
-
+# Date: 2025-05-18
 version: "3.8"
 
 services:
-  # Stack Auth service
+  # Stack Auth server (combines API backend and Dashboard)
   stack-auth:
     image: stackauth/server:latest
     ports:
       - "8101:8101" # Dashboard UI
       - "8102:8102" # API Backend
     environment:
-      # Database connection
-      - DATABASE_URL=${DATABASE_URL}
+      # Core URLs
       - NEXT_PUBLIC_STACK_API_URL=${NEXT_PUBLIC_STACK_API_URL}
-      - STACK_SECRET_SERVER_KEY=${STACK_SECRET_SERVER_KEY}
+      - NEXT_PUBLIC_STACK_DASHBOARD_URL=${NEXT_PUBLIC_STACK_DASHBOARD_URL}
 
-      # Email settings from .env file
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_SECURE=${SMTP_SECURE}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      # Database connection
+      - STACK_DATABASE_CONNECTION_STRING=${DATABASE_URL}
+      - STACK_DIRECT_DATABASE_CONNECTION_STRING=${DATABASE_URL}
+
+      # Server secret for JWT encryption
+      - STACK_SERVER_SECRET=${STACK_SECRET_SERVER_KEY}
+
+      # Seed script settings
+      - STACK_SEED_INTERNAL_PROJECT_SIGN_UP_ENABLED=${STACK_SEED_INTERNAL_PROJECT_SIGN_UP_ENABLED}
+      - STACK_SEED_INTERNAL_PROJECT_OTP_ENABLED=${STACK_SEED_INTERNAL_PROJECT_OTP_ENABLED}
+      - STACK_SEED_INTERNAL_PROJECT_ALLOW_LOCALHOST=${STACK_SEED_INTERNAL_PROJECT_ALLOW_LOCALHOST}
+      - STACK_SEED_INTERNAL_PROJECT_USER_EMAIL=${STACK_SEED_INTERNAL_PROJECT_USER_EMAIL}
+      - STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=${STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD}
+      - STACK_SEED_INTERNAL_PROJECT_USER_INTERNAL_ACCESS=${STACK_SEED_INTERNAL_PROJECT_USER_INTERNAL_ACCESS}
+
+      # Email settings
+      - STACK_EMAIL_HOST=${SMTP_HOST}
+      - STACK_EMAIL_PORT=${SMTP_PORT}
+      - STACK_EMAIL_USERNAME=${SMTP_USER}
+      - STACK_EMAIL_PASSWORD=${SMTP_PASSWORD}
+      - STACK_EMAIL_SENDER=${SMTP_FROM_EMAIL}
+      - STACK_EMAIL_SENDER_NAME=${SMTP_FROM_NAME}
+
+      # Svix webhooks configuration
+      - STACK_SVIX_SERVER_URL=${STACK_SVIX_SERVER_URL}
+      - NEXT_PUBLIC_STACK_SVIX_SERVER_URL=${NEXT_PUBLIC_STACK_SVIX_SERVER_URL}
+      - STACK_SVIX_API_KEY=${STACK_SVIX_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
       inbucket:
         condition: service_started
-        required: false # Won't fail if inbucket isn't running
+      svix:
+        condition: service_started
+    networks:
+      - default
+    profiles:
+      - ${STACK_ENV:-dev}
+      - prod
 
   # PostgreSQL database
   postgres:
@@ -47,29 +70,45 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - default
 
-  # ================================================================
-  # DEVELOPMENT EMAIL: Local email testing service (Inbucket)
-  # Only runs when STACK_ENV=dev in .env file
-  # ================================================================
+  # Inbucket for email testing (development only)
   inbucket:
     image: inbucket/inbucket:stable
     ports:
       - "8105:9000" # Web interface
       - "2500:2500" # SMTP
-      - "1100:1100" # POP3
     environment:
       - INBUCKET_MAILBOXNAMING=full
+    networks:
+      - default
     profiles:
-      # This service runs when either:
-      # 1. When STACK_ENV=dev (development mode)
-      # 2. No STACK_ENV is set (defaults to dev)
       - ${STACK_ENV:-dev}
-    # Will only start if STACK_ENV=dev
 
-volumes:
-  postgres_data:
+  # Svix for webhooks
+  svix:
+    image: svix/svix-server:latest
+    ports:
+      - "8071:8071" # Svix API
+    environment:
+      - SVIX_JWT_SECRET=${SVIX_JWT_SECRET}
+      - SVIX_DB_DSN=postgres://stack_auth:stack_auth_password@postgres:5432/svix
+    volumes:
+      - svix_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+    profiles:
+      - ${STACK_ENV:-dev}
+      - prod
 
 networks:
   default:
     name: stack-auth-network
+
+volumes:
+  postgres_data:
+  svix_data:

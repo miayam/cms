@@ -1,8 +1,6 @@
 #!/bin/bash
 # Script created with assistance from Claude AI (Anthropic)
-# Date: 2025-05-16
-
-# Stack Auth Management Script
+# Date: 2025-05-18
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -31,6 +29,7 @@ Commands:
     status        Show container status
     db-shell      Access PostgreSQL shell
     clean         Remove all containers and volumes
+    gen-keys      Generate secure keys for Stack Auth and Svix
 
 Examples:
     ./run-stack-auth.sh dev
@@ -52,6 +51,33 @@ check_env_file() {
             exit 1
         fi
     fi
+}
+
+# Generate secure keys
+generate_keys() {
+    print_color "Generating secure keys for Stack Auth..." "$GREEN"
+
+    # Generate Stack Auth server secret
+    SERVER_SECRET=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')
+    print_color "Stack Auth Server Secret: $SERVER_SECRET" "$GREEN"
+    print_color "Add this to your .env file as STACK_SECRET_SERVER_KEY" "$YELLOW"
+
+    # Generate strong password for database
+    DB_PASSWORD=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9')
+    print_color "Database Password: $DB_PASSWORD" "$GREEN"
+    print_color "Add this to your .env file for DATABASE_URL and POSTGRES_PASSWORD" "$YELLOW"
+
+    # Generate Svix API key
+    SVIX_API_KEY="sv-$(openssl rand -hex 16)"
+    print_color "Svix API Key: $SVIX_API_KEY" "$GREEN"
+    print_color "Add this to your .env file as STACK_SVIX_API_KEY" "$YELLOW"
+
+    # Generate Svix JWT secret
+    SVIX_JWT_SECRET="sv-$(openssl rand -hex 32)"
+    print_color "Svix JWT Secret: $SVIX_JWT_SECRET" "$GREEN"
+    print_color "Add this to your .env file as SVIX_JWT_SECRET" "$YELLOW"
+
+    print_color "✅ All keys generated. Use these to update your .env file." "$GREEN"
 }
 
 # Update STACK_ENV in .env file
@@ -98,8 +124,8 @@ start_prod() {
 
     # Check if production email settings are configured
     env_file="docker/stack-auth/.env"
-    if grep -q "SMTP_HOST=inbucket" "$env_file"; then
-        print_color "⚠️ Warning: You are still using Inbucket for email in production!" "$YELLOW"
+    if ! grep -q "STACK_EMAIL_HOST=" "$env_file" || grep -q "STACK_EMAIL_HOST=$" "$env_file"; then
+        print_color "⚠️ Warning: Production email settings are not configured!" "$YELLOW"
         print_color "Please edit docker/stack-auth/.env to configure your production email settings" "$YELLOW"
         read -p "Continue anyway? (y/N) " -n 1 -r
         echo
@@ -148,7 +174,16 @@ status() {
 db_shell() {
     print_color "Connecting to PostgreSQL shell..." "$GREEN"
     cd docker/stack-auth
-    docker-compose exec postgres psql -U stack_auth stack_auth
+
+    # Get the user and database name from .env file
+    DB_USER=$(grep POSTGRES_USER docker/stack-auth/.env | cut -d '=' -f2)
+    DB_NAME=$(grep POSTGRES_DB docker/stack-auth/.env | cut -d '=' -f2)
+
+    # Use default values if not found
+    DB_USER=${DB_USER:-stack_auth}
+    DB_NAME=${DB_NAME:-stack_auth}
+
+    docker-compose exec postgres psql -U $DB_USER $DB_NAME
 }
 
 # Clean up
@@ -197,6 +232,9 @@ main() {
             ;;
         clean)
             clean
+            ;;
+        gen-keys)
+            generate_keys
             ;;
         *)
             print_color "Unknown command: $command" "$RED"

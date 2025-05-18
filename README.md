@@ -8,7 +8,19 @@ A monorepo for CMS applications with Stack Auth integration.
 # Install dependencies
 pnpm install
 
+# Create and configure the .env file for Stack Auth
+cp docker/stack-auth/.env.template docker/stack-auth/.env
+# Edit the .env file with your settings
+nano docker/stack-auth/.env
+
+# Generate secure keys
+openssl rand -base64 32 | tr '+/' '-_' | tr -d '=' # For STACK_SECRET_SERVER_KEY
+openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' # For database password
+echo "sv-$(openssl rand -hex 16)" # For STACK_SVIX_API_KEY
+echo "sv-$(openssl rand -hex 32)" # For SVIX_JWT_SECRET
+
 # Start Stack Auth in development mode
+chmod +x docker/stack-auth/run-stack-auth.sh
 pnpm stack-auth:start
 
 # Start everything (when you add your apps)
@@ -86,10 +98,70 @@ cms/
    nano docker/stack-auth/.env
    ```
 
-3. Generate a secure key for `STACK_SECRET_SERVER_KEY`:
+3. Generate required secure keys and update the `.env` file:
+
+   a. For `STACK_SECRET_SERVER_KEY`:
    ```bash
-   openssl rand -hex 32
+   openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
    ```
+
+   b. For database password:
+   ```bash
+   openssl rand -base64 24 | tr -dc 'a-zA-Z0-9'
+   ```
+
+   c. For Svix API Key:
+   ```bash
+   echo "sv-$(openssl rand -hex 16)"
+   ```
+
+   d. For Svix JWT Secret:
+   ```bash
+   echo "sv-$(openssl rand -hex 32)"
+   ```
+
+4. Your `.env` file should include these essential configurations:
+
+```
+# Core URLs
+NEXT_PUBLIC_STACK_API_URL=http://localhost:8102
+NEXT_PUBLIC_STACK_DASHBOARD_URL=http://localhost:8101
+
+# Database connection
+DATABASE_URL=postgresql://stack_auth:YOUR_GENERATED_PASSWORD@postgres:5432/stack_auth
+POSTGRES_USER=stack_auth
+POSTGRES_PASSWORD=YOUR_GENERATED_PASSWORD
+POSTGRES_DB=stack_auth
+
+# Server secret key
+STACK_SECRET_SERVER_KEY=YOUR_GENERATED_SECRET
+
+# Development or Production mode
+STACK_ENV=dev
+
+# Email settings
+SMTP_HOST=inbucket
+SMTP_PORT=2500
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_NAME=Stack Auth
+SMTP_FROM_EMAIL=noreply@example.com
+
+# Svix webhooks configuration
+STACK_SVIX_SERVER_URL=http://svix:8071
+NEXT_PUBLIC_STACK_SVIX_SERVER_URL=http://localhost:8071
+STACK_SVIX_API_KEY=YOUR_GENERATED_SVIX_API_KEY
+SVIX_JWT_SECRET=YOUR_GENERATED_SVIX_JWT_SECRET
+
+# Seed script settings
+STACK_SEED_INTERNAL_PROJECT_SIGN_UP_ENABLED=true
+STACK_SEED_INTERNAL_PROJECT_OTP_ENABLED=false
+STACK_SEED_INTERNAL_PROJECT_ALLOW_LOCALHOST=true
+STACK_SEED_INTERNAL_PROJECT_USER_EMAIL=admin@example.com
+STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=StrongPassword123
+STACK_SEED_INTERNAL_PROJECT_USER_INTERNAL_ACCESS=true
+```
 
 ### Email Configuration
 
@@ -102,7 +174,7 @@ The default configuration uses Inbucket for development, which captures all emai
 
 #### Production
 
-For production, edit `.env` and uncomment the production email settings:
+For production, edit `.env` and update the email settings:
 
 ```env
 SMTP_HOST=smtp.mailersend.net
@@ -117,9 +189,42 @@ SMTP_FROM_EMAIL=noreply@your-domain.com
 STACK_ENV=prod
 ```
 
+### Webhooks with Svix
+
+Stack Auth uses Svix for webhook functionality. This allows your application to receive notifications when events occur (such as user creation, authentication, etc.).
+
+The webhooks are configured automatically with the settings in your `.env` file. You can access the Svix API at http://localhost:8071 in development mode.
+
 ## 🔗 Access URLs
 
 - **Stack Auth Dashboard**: http://localhost:8101
 - **Stack Auth API**: http://localhost:8102
 - **Email Testing UI**: http://localhost:8105 (development only)
+- **Svix API**: http://localhost:8071
 - **PostgreSQL**: localhost:5432
+
+## 🔑 Default Admin Credentials
+
+When Stack Auth starts for the first time, it creates a default admin user:
+
+- **Email**: admin@example.com
+- **Password**: StrongPassword123
+
+You can change these credentials in your `.env` file by updating:
+```
+STACK_SEED_INTERNAL_PROJECT_USER_EMAIL=your-email@example.com
+STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=your-strong-password
+```
+
+## 🔌 Integrating with Your Applications
+
+To connect your applications to Stack Auth:
+
+1. Add the following environment variable to your application:
+   ```
+   NEXT_PUBLIC_STACK_API_URL=http://localhost:8102
+   ```
+
+2. Follow the [Stack Auth documentation](https://github.com/stack-auth/stack-auth) for client integration.
+
+3. Create a new project in the Stack Auth Dashboard for your application.
