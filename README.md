@@ -1,6 +1,6 @@
 # CMS Monorepo
 
-A monorepo for CMS applications with Stack Auth integration and Strapi-based headless CMS with custom plugins.
+An all-in-one CMS platform for your side hustles (blogging, newsletters, subscription courses, membership sites, digital products, etc.) powered by Strapi and Stack Auth.
 
 ## 🚀 Quick Start
 
