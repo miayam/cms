@@ -40,14 +40,23 @@ EOF
 
 # Check if .env file exists
 check_env_file() {
-    if [ ! -f "docker/stack-auth/.env" ]; then
+    # Get the directory where the script is located
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Check if .env exists in the script directory
+    if [ ! -f "$SCRIPT_DIR/.env" ]; then
         print_color "⚠️ .env file not found! Creating from template..." "$YELLOW"
-        if [ -f "docker/stack-auth/.env.template" ]; then
-            cp docker/stack-auth/.env.template docker/stack-auth/.env
+
+        # Check if .env.template exists in the script directory
+        if [ -f "$SCRIPT_DIR/.env.template" ]; then
+            cp "$SCRIPT_DIR/.env.template" "$SCRIPT_DIR/.env"
             print_color "✅ Created .env file from template" "$GREEN"
-            print_color "⚠️ Please edit docker/stack-auth/.env with your settings!" "$YELLOW"
         else
-            print_color "❌ .env.template not found! Please create docker/stack-auth/.env file manually" "$RED"
+            print_color "❌ .env.template not found in $SCRIPT_DIR!" "$RED"
+            print_color "Current directory is: $(pwd)" "$RED"
+            print_color "Listing files in script directory:" "$RED"
+            ls -la "$SCRIPT_DIR"
+            print_color "Please create $SCRIPT_DIR/.env file manually" "$RED"
             exit 1
         fi
     fi

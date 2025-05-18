@@ -73,13 +73,13 @@ pnpm stop:all
 
 ```
 cms/
-├── apps/                   # Your applications
+├── apps/                       # Your applications
 ├── docker/
-│   └── stack-auth/         # Stack Auth configuration
+│   └── stack-auth/             # Stack Auth configuration
 │       ├── docker-compose.yml
-│       ├── .env            # Environment config (create from .env.template)
+│       ├── .env                # Environment config (create from .env.template)
 │       └── run-stack-auth.sh
-├── packages/               # Shared packages
+├── packages/                   # Shared packages
 ├── package.json
 └── pnpm-workspace.yaml
 ```
