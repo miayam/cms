@@ -58,22 +58,6 @@ pnpm stack-auth:db-shell
 pnpm stack-auth:clean
 ```
 
-### Strapi CMS Commands
-
-```bash
-# Start Strapi in development mode
-pnpm strapi:dev
-
-# Build Strapi for production
-pnpm strapi:build
-
-# Start Strapi in production mode
-pnpm strapi:start
-
-# Access Strapi CLI
-pnpm strapi:cli
-```
-
 ### Combined Commands
 
 ```bash
