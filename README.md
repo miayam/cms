@@ -1,6 +1,6 @@
 # CMS Monorepo
 
-A monorepo for CMS applications with Stack Auth integration.
+A monorepo for CMS applications with Stack Auth integration and Strapi-based headless CMS with custom plugins.
 
 ## 🚀 Quick Start
 
@@ -15,7 +15,6 @@ nano docker/stack-auth/.env
 
 # Generate secure keys
 openssl rand -base64 32 | tr '+/' '-_' | tr -d '=' # For STACK_SECRET_SERVER_KEY
-openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' # For database password
 echo "sv-$(openssl rand -hex 16)" # For STACK_SVIX_API_KEY
 echo "sv-$(openssl rand -hex 32)" # For SVIX_JWT_SECRET
 
@@ -23,7 +22,10 @@ echo "sv-$(openssl rand -hex 32)" # For SVIX_JWT_SECRET
 chmod +x docker/stack-auth/run-stack-auth.sh
 pnpm stack-auth:start
 
-# Start everything (when you add your apps)
+# Start Strapi in development mode
+pnpm strapi:dev
+
+# Start everything
 pnpm dev:all
 ```
 
@@ -56,10 +58,26 @@ pnpm stack-auth:db-shell
 pnpm stack-auth:clean
 ```
 
+### Strapi CMS Commands
+
+```bash
+# Start Strapi in development mode
+pnpm strapi:dev
+
+# Build Strapi for production
+pnpm strapi:build
+
+# Start Strapi in production mode
+pnpm strapi:start
+
+# Access Strapi CLI
+pnpm strapi:cli
+```
+
 ### Combined Commands
 
 ```bash
-# Start everything (Stack Auth + apps) in development mode
+# Start everything (Stack Auth + Strapi + all apps) in development mode
 pnpm dev:all
 
 # Start everything in production mode
@@ -74,12 +92,20 @@ pnpm stop:all
 ```
 cms/
 ├── apps/                       # Your applications
+|    └── strapi/                # Strapi CMS application
+│       ├── src/
+│       │   ├── extensions/     # Strapi extensions
+│       └── ...
 ├── docker/
 │   └── stack-auth/             # Stack Auth configuration
 │       ├── docker-compose.yml
+│       ├── .env.template       # Environment config template
 │       ├── .env                # Environment config (create from .env.template)
 │       └── run-stack-auth.sh
 ├── packages/                   # Shared packages
+│   ├── diajar-notes/           # Notes-taking plugin for Strapi (shared publicly)
+│   ├── jamhook/                # Jamstack build management
+│   └── ...
 ├── package.json
 └── pnpm-workspace.yaml
 ```
@@ -129,9 +155,6 @@ NEXT_PUBLIC_STACK_DASHBOARD_URL=http://localhost:8101
 
 # Database connection
 DATABASE_URL=postgresql://stack_auth:YOUR_GENERATED_PASSWORD@postgres:5432/stack_auth
-POSTGRES_USER=stack_auth
-POSTGRES_PASSWORD=YOUR_GENERATED_PASSWORD
-POSTGRES_DB=stack_auth
 
 # Server secret key
 STACK_SECRET_SERVER_KEY=YOUR_GENERATED_SECRET
@@ -218,6 +241,8 @@ STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=your-strong-password
 
 ## 🔌 Integrating with Your Applications
 
+### Stack Auth Integration
+
 To connect your applications to Stack Auth:
 
 1. Add the following environment variable to your application:
@@ -228,3 +253,15 @@ To connect your applications to Stack Auth:
 2. Follow the [Stack Auth documentation](https://github.com/stack-auth/stack-auth) for client integration.
 
 3. Create a new project in the Stack Auth Dashboard for your application.
+
+## 🌱 Setting Up Strapi
+
+_Step-by-step instructions for setting up and running Strapi will be provided soon._
+
+## 🧩 Strapi Plugins
+
+### Diajar Notes
+_A clean, intuitive note-taking plugin inspired by Simplenote, Notion, and Gutenberg._
+
+### Jamhook
+_Automate the regeneration of your static sites with seamless integration to Netlify, Cloudflare Pages, and Vercel._
