@@ -1,4 +1,4 @@
-# CMS Monorepo
+# CMS Monorepo (WIP)
 
 An all-in-one, self-hosted CMS platform for your side hustles (blogging, newsletters, subscription courses, membership sites, digital products, etc.) powered by Strapi and Stack Auth.
 
@@ -8,15 +8,19 @@ An all-in-one, self-hosted CMS platform for your side hustles (blogging, newslet
 # Install dependencies
 pnpm install
 
+
+# Generate secure keys
+pnpm generate:keys
+
 # Create and configure the .env file for Stack Auth
 cp docker/stack-auth/.env.template docker/stack-auth/.env
 # Edit the .env file with your settings
-nano docker/stack-auth/.env
+vi docker/stack-auth/.env
 
-# Generate secure keys
-openssl rand -base64 32 | tr '+/' '-_' | tr -d '=' # For STACK_SECRET_SERVER_KEY
-echo "sv-$(openssl rand -hex 16)" # For STACK_SVIX_API_KEY
-echo "sv-$(openssl rand -hex 32)" # For SVIX_JWT_SECRET
+# Create and configure the .env file for Strapi
+cp apps/strapi/.env.example apps/strapi/.env
+# Edit the .env file with your Strapi settings
+vi apps/strapi/.env
 
 # Start Stack Auth in development mode
 chmod +x docker/stack-auth/run-stack-auth.sh
@@ -31,7 +35,7 @@ pnpm dev:all
 
 ## 📋 Available Commands
 
-### Stack Auth Commands
+### 🔑 Stack Auth Commands
 
 ```bash
 # Start Stack Auth in development mode (uses Inbucket for email)
@@ -58,6 +62,37 @@ pnpm stack-auth:db-shell
 pnpm stack-auth:clean
 ```
 
+### 🏗️ Strapi Commands
+
+```bash
+# Start Strapi in development mode
+pnpm strapi:dev
+
+# Start Strapi in production mode
+pnpm strapi:start
+
+# Build Strapi for production
+pnpm strapi:build
+
+# Stop Strapi containers
+pnpm strapi:stop
+
+# View Strapi logs
+pnpm strapi:logs
+
+# Access Strapi database shell (PostgreSQL)
+pnpm strapi:db-shell
+
+# Clean up Strapi containers and volumes
+pnpm strapi:clean
+
+# Reset Strapi database (WARNING: This will delete all data)
+pnpm strapi:reset
+
+# Generate Strapi admin user
+pnpm strapi:admin
+```
+
 ### Combined Commands
 
 ```bash
@@ -69,6 +104,9 @@ pnpm prod:all
 
 # Stop everything
 pnpm stop:all
+
+# Clean everything (WARNING: This will delete all data)
+pnpm clean:all
 ```
 
 ## 📦 Structure
@@ -76,10 +114,17 @@ pnpm stop:all
 ```
 cms/
 ├── apps/                       # Your applications
-|    └── strapi/                # Strapi CMS application
+│   └── strapi/                 # Strapi CMS
 │       ├── src/
+│       │   ├── api/            # Strapi API routes
+│       │   ├── components/     # Strapi components
 │       │   ├── extensions/     # Strapi extensions
-│       └── ...
+│       │   └── plugins/        # Custom Strapi plugins
+│       ├── config/             # Strapi configuration
+│       ├── docker-compose.yml  # Strapi Docker setup
+│       ├── Dockerfile          # Strapi Docker image
+│       ├── .env.example        # Strapi environment template
+│       └── package.json
 ├── docker/
 │   └── stack-auth/             # Stack Auth configuration
 │       ├── docker-compose.yml
@@ -90,13 +135,15 @@ cms/
 │   ├── diajar-notes/           # Notes-taking plugin for Strapi (shared publicly)
 │   ├── jamhook/                # Jamstack build management
 │   └── ...
+├── scripts/                    # Utility scripts
+│   └── generate-keys.js        # Generate secure keys
 ├── package.json
 └── pnpm-workspace.yaml
 ```
 
 ## ⚙️ Configuration
 
-### Setting Up Stack Auth
+### 🔧 Setting Up Stack Auth
 
 1. Create `.env` file from template:
    ```bash
@@ -132,7 +179,7 @@ cms/
 
 4. Your `.env` file should include these essential configurations:
 
-```
+```env
 # Core URLs
 NEXT_PUBLIC_STACK_API_URL=http://localhost:8102
 NEXT_PUBLIC_STACK_DASHBOARD_URL=http://localhost:8101
@@ -170,16 +217,71 @@ STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=StrongPassword123
 STACK_SEED_INTERNAL_PROJECT_USER_INTERNAL_ACCESS=true
 ```
 
-### Email Configuration
+### 🏗️ Setting Up Strapi
 
-#### Development (Default)
+1. Create `.env` file from example:
+   ```bash
+   cp apps/strapi/.env.example apps/strapi/.env
+   ```
+
+2. Generate required secure keys for Strapi:
+
+   a. For `JWT_SECRET`:
+   ```bash
+   openssl rand -base64 32
+   ```
+
+   b. For `ADMIN_JWT_SECRET`:
+   ```bash
+   openssl rand -base64 32
+   ```
+
+   c. For `APP_KEYS` (generate 4 keys):
+   ```bash
+   echo "$(openssl rand -base64 32),$(openssl rand -base64 32),$(openssl rand -base64 32),$(openssl rand -base64 32)"
+   ```
+
+3. Your Strapi `.env` file should include:
+
+```env
+# Database
+DATABASE_CLIENT=postgres
+DATABASE_HOST=localhost
+DATABASE_PORT=5433
+DATABASE_NAME=strapi
+DATABASE_USERNAME=strapi
+DATABASE_PASSWORD=strapi
+
+# Secrets
+JWT_SECRET=YOUR_GENERATED_JWT_SECRET
+ADMIN_JWT_SECRET=YOUR_GENERATED_ADMIN_JWT_SECRET
+APP_KEYS=YOUR_GENERATED_APP_KEYS
+
+# Environment
+NODE_ENV=development
+
+# Stack Auth Integration
+STACK_AUTH_API_URL=http://localhost:8102
+STACK_AUTH_PUBLISHABLE_KEY=YOUR_STACK_AUTH_PUBLISHABLE_KEY
+```
+
+4. Start Strapi services:
+   ```bash
+   pnpm strapi:dev
+   ```
+
+5. Access Strapi admin panel at http://localhost:1338/admin and create your first admin user.
+
+### 📧 Email Configuration
+
+#### 🧪 Development (Default)
 
 The default configuration uses Inbucket for development, which captures all emails locally:
 
 - Access emails at: http://localhost:8105
 - No real emails are sent
 
-#### Production
+#### 🚀 Production
 
 For production, edit `.env` and update the email settings:
 
@@ -196,7 +298,7 @@ SMTP_FROM_EMAIL=noreply@your-domain.com
 STACK_ENV=prod
 ```
 
-### Webhooks with Svix
+### 🔗 Webhooks with Svix
 
 Stack Auth uses Svix for webhook functionality. This allows your application to receive notifications when events occur (such as user creation, authentication, etc.).
 
@@ -206,46 +308,75 @@ The webhooks are configured automatically with the settings in your `.env` file.
 
 - **Stack Auth Dashboard**: http://localhost:8101
 - **Stack Auth API**: http://localhost:8102
+- **Strapi Admin Panel**: http://localhost:1338/admin
+- **Strapi API**: http://localhost:1338/api
 - **Email Testing UI**: http://localhost:8105 (development only)
 - **Svix API**: http://localhost:8071
-- **PostgreSQL**: localhost:5432
+- **Stack Auth PostgreSQL**: localhost:5432
+- **Strapi PostgreSQL**: localhost:5433
 
 ## 🔑 Default Admin Credentials
 
+### Stack Auth
 When Stack Auth starts for the first time, it creates a default admin user:
-
 - **Email**: admin@example.com
 - **Password**: StrongPassword123
 
 You can change these credentials in your `.env` file by updating:
-```
+```env
 STACK_SEED_INTERNAL_PROJECT_USER_EMAIL=your-email@example.com
 STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=your-strong-password
 ```
 
-## 🔌 Integrating with Your Applications
-
-### Stack Auth Integration
-
-To connect your applications to Stack Auth:
-
-1. Add the following environment variable to your application:
-   ```
-   NEXT_PUBLIC_STACK_API_URL=http://localhost:8102
-   ```
-
-2. Follow the [Stack Auth documentation](https://github.com/stack-auth/stack-auth) for client integration.
-
-3. Create a new project in the Stack Auth Dashboard for your application.
-
-## 🌱 Setting Up Strapi
-
-_Step-by-step instructions for setting up and running Strapi will be provided soon._
+### Strapi
+When you first access the Strapi admin panel, you'll be prompted to create an admin user. No default credentials are provided for security reasons.
 
 ## 🧩 Strapi Plugins
 
-### Diajar Notes
+### 📝 Diajar Notes
 _A clean, intuitive note-taking plugin inspired by Simplenote, Notion, and Gutenberg._
 
-### Jamhook
+### 🚀 Jamhook
 _Automate the regeneration of your static sites with seamless integration to Netlify, Cloudflare Pages, and Vercel._
+
+## 🛠️ Troubleshooting
+
+#### ⚠️ Common Issues
+
+1. **Port conflicts**: Make sure ports 1338, 5433, 8101, 8102, 8105, and 8071 are available.
+
+2. **Database connection issues**:
+   - Check if PostgreSQL containers are running
+   - Verify database credentials in `.env` files
+   - Ensure network connectivity between containers
+
+3. **Stack Auth integration issues**:
+   - Verify API keys and endpoints
+   - Check CORS settings in both Stack Auth and Strapi
+   - Ensure webhook endpoints are accessible
+
+4. **Plugin development issues**:
+   - Run `pnpm strapi:build` after making changes
+   - Check plugin registration in `config/plugins.js`
+   - Verify plugin dependencies are installed
+
+#### 🔍 Logs and Debugging
+
+```bash
+# View all services logs
+pnpm stack-auth:logs
+pnpm strapi:logs
+
+# Access database shells for debugging
+pnpm stack-auth:db-shell
+pnpm strapi:db-shell
+```
+
+---
+
+## 📚 Additional Resources
+
+- [Stack Auth Documentation](https://docs.stack-auth.com)
+- [Strapi Documentation](https://docs.strapi.io)
+- [Strapi Plugin Development](https://docs.strapi.io/developer-docs/latest/plugin-development/quick-start.html)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
