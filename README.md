@@ -8,7 +8,6 @@ An all-in-one, self-hosted CMS platform for your side hustles (blogging, newslet
 # Install dependencies
 pnpm install
 
-
 # Generate secure keys
 pnpm generate:keys
 
@@ -21,16 +20,11 @@ vi docker/stack-auth/.env
 cp apps/strapi/.env.example apps/strapi/.env
 # Edit the .env file with your Strapi settings
 vi apps/strapi/.env
-
 # Start Stack Auth in development mode
-chmod +x docker/stack-auth/run-stack-auth.sh
 pnpm stack-auth:start
 
 # Start Strapi in development mode
 pnpm strapi:dev
-
-# Start everything
-pnpm dev:all
 ```
 
 ## 📋 Available Commands
@@ -91,22 +85,6 @@ pnpm strapi:reset
 
 # Generate Strapi admin user
 pnpm strapi:admin
-```
-
-### Combined Commands
-
-```bash
-# Start everything (Stack Auth + Strapi + all apps) in development mode
-pnpm dev:all
-
-# Start everything in production mode
-pnpm prod:all
-
-# Stop everything
-pnpm stop:all
-
-# Clean everything (WARNING: This will delete all data)
-pnpm clean:all
 ```
 
 ## 📦 Structure
