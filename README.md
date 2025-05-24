@@ -276,7 +276,7 @@ SMTP_FROM_EMAIL=noreply@your-domain.com
 STACK_ENV=prod
 ```
 
-### 🔗 Webhooks with Svix
+### 🔗 Webhooks with Svix (Currently not working)
 
 Stack Auth uses Svix for webhook functionality. This allows your application to receive notifications when events occur (such as user creation, authentication, etc.).
 
