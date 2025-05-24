@@ -8,6 +8,9 @@ An all-in-one, self-hosted CMS platform for your side hustles (blogging, newslet
 # Install dependencies
 pnpm install
 
+# Initialize .env in development mode for Stack Auth and Strapi
+pnpm bootstrap
+
 # Start Stack Auth and Strapi in development mode
 pnpm dev
 ```
@@ -82,6 +85,7 @@ cms/
 │       ├── docker-compose.yml  # Strapi Docker setup
 │       ├── Dockerfile          # Strapi Docker image
 │       ├── .env.example        # Strapi environment template
+│       ├── setup-strapi-env.sh # Generate .env for development
 │       └── package.json
 ├── docker/
 │   └── stack-auth/             # Stack Auth configuration

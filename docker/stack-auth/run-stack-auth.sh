@@ -121,10 +121,8 @@ init_environment() {
     fi
 
     print_color "✅ Environment initialized successfully!" "$GREEN"
-    print_color "Starting Stack Auth..." "$BLUE"
-
-    # Start development mode
-    start_dev
+    sleep 5
+    exit 0
 }
 
 # Generate secure keys
