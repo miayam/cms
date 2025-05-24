@@ -188,6 +188,11 @@ STACK_SEED_INTERNAL_PROJECT_USER_INTERNAL_ACCESS=true
 3. Your Strapi `.env` file should include:
 
 ```env
+# Secrets
+JWT_SECRET=YOUR_GENERATED_JWT_SECRET
+ADMIN_JWT_SECRET=YOUR_GENERATED_ADMIN_JWT_SECRET
+APP_KEYS=YOUR_GENERATED_APP_KEYS
+
 # Database
 DATABASE_CLIENT=postgres
 DATABASE_HOST=localhost
@@ -196,17 +201,8 @@ DATABASE_NAME=strapi
 DATABASE_USERNAME=strapi
 DATABASE_PASSWORD=strapi
 
-# Secrets
-JWT_SECRET=YOUR_GENERATED_JWT_SECRET
-ADMIN_JWT_SECRET=YOUR_GENERATED_ADMIN_JWT_SECRET
-APP_KEYS=YOUR_GENERATED_APP_KEYS
-
 # Environment
 NODE_ENV=development
-
-# Stack Auth Integration
-STACK_AUTH_API_URL=http://localhost:8102
-STACK_AUTH_PUBLISHABLE_KEY=YOUR_STACK_AUTH_PUBLISHABLE_KEY
 ```
 
 4. Start Strapi services:
@@ -227,7 +223,7 @@ The default configuration uses Inbucket for development, which captures all emai
 
 #### 🚀 Production
 
-For production, edit `.env` and update the email settings:
+For production, edit `docker/stack-auth/.env`` and update the email settings:
 
 ```env
 SMTP_HOST=smtp.mailersend.net
