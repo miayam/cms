@@ -6,20 +6,31 @@
   "author": "Your Name",
   "license": "MIT",
   "scripts": {
+    "// Setup Commands": "========================================",
+    "setup": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh init'",
+    "generate:keys": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh gen-keys'",
     "// Stack Auth Commands": "========================================",
+    "stack-auth:init": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh init'",
     "stack-auth:start": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh dev'",
     "stack-auth:start:dev": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh dev'",
     "stack-auth:start:prod": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh prod'",
     "stack-auth:stop": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh stop'",
+    "stack-auth:restart": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh restart'",
     "stack-auth:logs": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs'",
+    "stack-auth:logs:svix": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs svix'",
+    "stack-auth:logs:postgres": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs postgres'",
+    "stack-auth:logs:redis": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs redis'",
     "stack-auth:status": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh status'",
+    "stack-auth:health": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh health'",
     "stack-auth:clean": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh clean'",
     "stack-auth:db-shell": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh db-shell'",
+    "stack-auth:fix-svix": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh fix-svix'",
     "// Strapi Commands": "========================================",
     "strapi:dev": "bash -c 'cd apps/strapi && docker-compose up -d'",
     "strapi:start": "bash -c 'cd apps/strapi && docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d'",
     "strapi:build": "bash -c 'cd apps/strapi && docker-compose exec strapi npm run build'",
     "strapi:stop": "bash -c 'cd apps/strapi && docker-compose down'",
+    "strapi:restart": "bash -c 'cd apps/strapi && docker-compose restart'",
     "strapi:logs": "bash -c 'cd apps/strapi && docker-compose logs -f'",
     "strapi:logs:strapi": "bash -c 'cd apps/strapi && docker-compose logs -f strapi'",
     "strapi:logs:db": "bash -c 'cd apps/strapi && docker-compose logs -f strapiDB'",
@@ -27,10 +38,31 @@
     "strapi:shell": "bash -c 'cd apps/strapi && docker-compose exec strapi sh'",
     "strapi:clean": "bash -c 'cd apps/strapi && docker-compose down -v --remove-orphans'",
     "strapi:reset": "bash -c 'cd apps/strapi && docker-compose down -v && docker-compose up -d'",
-    "strapi:restart": "bash -c 'cd apps/strapi && docker-compose restart'",
     "strapi:admin": "bash -c 'cd apps/strapi && docker-compose exec strapi npm run strapi admin:create-user'",
+    "// Combined Development Commands": "========================================",
+    "dev": "concurrently \"pnpm stack-auth:start\" \"pnpm strapi:dev\"",
+    "dev:stack-auth": "pnpm stack-auth:start",
+    "dev:strapi": "pnpm strapi:dev",
+    "dev:all": "pnpm setup && pnpm dev",
+    "// Stop Commands": "========================================",
+    "stop": "concurrently \"pnpm stack-auth:stop\" \"pnpm strapi:stop\"",
+    "stop:all": "pnpm stop",
+    "// Health & Diagnostics": "========================================",
+    "health": "pnpm stack-auth:health",
+    "status": "concurrently \"pnpm stack-auth:status\" \"pnpm strapi:logs --since=1m\"",
+    "logs": "concurrently \"pnpm stack-auth:logs\" \"pnpm strapi:logs\"",
+    "// Maintenance Commands": "========================================",
+    "clean": "concurrently \"pnpm stack-auth:clean\" \"pnpm strapi:clean\"",
+    "clean:all": "pnpm clean",
+    "restart": "pnpm stop && sleep 3 && pnpm dev",
+    "restart:all": "pnpm restart",
+    "fix:svix": "pnpm stack-auth:fix-svix",
+    "// Database Commands": "========================================",
+    "db:shell:stack-auth": "pnpm stack-auth:db-shell",
+    "db:shell:strapi": "pnpm strapi:db-shell",
     "// Utility Commands": "========================================",
-    "generate:keys": "node scripts/generate-keys.js"
+    "docker:cleanup": "docker system prune -f && docker volume prune -f",
+    "docker:reset": "pnpm clean && pnpm docker:cleanup && pnpm dev"
   },
   "workspaces": [
     "apps/*",
@@ -57,14 +89,16 @@
     "authentication",
     "docker",
     "postgresql",
-    "monorepo"
+    "monorepo",
+    "webhooks",
+    "svix"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/cms-monorepo.git"
+    "url": "https://github.com/miayam/cms.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/cms-monorepo/issues"
+    "url": "https://github.com/miayam/cms/issues"
   },
-  "homepage": "https://github.com/yourusername/cms-monorepo#readme"
+  "homepage": "https://github.com/miayam/cms#readme"
 }

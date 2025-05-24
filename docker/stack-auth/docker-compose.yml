@@ -1,5 +1,5 @@
 # Created with assistance from Claude AI (Anthropic)
-# Date: 2025-05-18
+# Date: 2025-05-24
 version: "3.8"
 
 services:
@@ -42,17 +42,14 @@ services:
       - NEXT_PUBLIC_STACK_SVIX_SERVER_URL=${NEXT_PUBLIC_STACK_SVIX_SERVER_URL}
       - STACK_SVIX_API_KEY=${STACK_SVIX_API_KEY}
     depends_on:
-      postgres:
-        condition: service_healthy
-      inbucket:
-        condition: service_started
-      svix:
-        condition: service_started
+      - postgres
+      - inbucket
     networks:
       - default
     profiles:
       - ${STACK_ENV:-dev}
       - prod
+    restart: unless-stopped
 
   # PostgreSQL database
   postgres:
@@ -63,6 +60,7 @@ services:
       POSTGRES_DB: stack_auth
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-svix-db.sql:/docker-entrypoint-initdb.d/init-svix-db.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -93,22 +91,34 @@ services:
       - "8071:8071" # Svix API
     environment:
       - SVIX_JWT_SECRET=${SVIX_JWT_SECRET}
-      - SVIX_DB_DSN=postgres://stack_auth:stack_auth_password@postgres:5432/svix
-    volumes:
-      - svix_data:/data
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - SVIX_DB_DSN=postgresql://stack_auth:stack_auth_password@postgres:5432/stack_auth
+      - SVIX_LISTEN_ADDRESS=0.0.0.0:8071
     networks:
       - default
     profiles:
       - ${STACK_ENV:-dev}
       - prod
+    restart: unless-stopped
+
+  # Redis for Svix
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - default
+    profiles:
+      - ${STACK_ENV:-dev}
+      - prod
+    restart: unless-stopped
 
 networks:
   default:
-    name: stack-auth-network
+    driver: bridge
 
 volumes:
   postgres_data:
   svix_data:
+  redis_data:
