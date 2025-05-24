@@ -223,7 +223,7 @@ The default configuration uses Inbucket for development, which captures all emai
 
 #### 🚀 Production
 
-For production, edit `docker/stack-auth/.env`` and update the email settings:
+For production, edit `docker/stack-auth/.env` and update the email settings:
 
 ```env
 SMTP_HOST=smtp.mailersend.net
