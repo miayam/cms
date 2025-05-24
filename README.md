@@ -242,12 +242,6 @@ SMTP_FROM_EMAIL=noreply@your-domain.com
 STACK_ENV=prod
 ```
 
-### 🔗 Webhooks with Svix (currently not working)
-
-Stack Auth uses Svix for webhook functionality. This allows your application to receive notifications when events occur (such as user creation, authentication, etc.).
-
-The webhooks are configured automatically with the settings in your `.env` file. You can access the Svix API at http://localhost:8071 in development mode.
-
 ## 🔗 Access URLs
 
 - **Stack Auth Dashboard**: http://localhost:8101
