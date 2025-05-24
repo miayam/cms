@@ -14,14 +14,12 @@
     "stack-auth:stop": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh stop'",
     "stack-auth:restart": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh restart'",
     "stack-auth:logs": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs'",
-    "stack-auth:logs:svix": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs svix'",
     "stack-auth:logs:postgres": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs postgres'",
     "stack-auth:logs:redis": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh logs redis'",
     "stack-auth:status": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh status'",
     "stack-auth:health": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh health'",
     "stack-auth:clean": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh clean'",
     "stack-auth:db-shell": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh db-shell'",
-    "stack-auth:fix-svix": "bash -c 'cd docker/stack-auth && bash ./run-stack-auth.sh fix-svix'",
     "// Strapi Commands": "========================================",
     "strapi:dev": "bash -c 'cd apps/strapi && docker-compose up -d'",
     "strapi:start": "bash -c 'cd apps/strapi && docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d'",
@@ -85,8 +83,7 @@
     "docker",
     "postgresql",
     "monorepo",
-    "webhooks",
-    "svix"
+    "webhooks"
   ],
   "repository": {
     "type": "git",
