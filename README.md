@@ -97,8 +97,6 @@ cms/
 │   ├── diajar-notes/           # Notes-taking plugin for Strapi (shared publicly)
 │   ├── jamhook/                # Jamstack build management
 │   └── ...
-├── scripts/                    # Utility scripts
-│   └── generate-keys.js        # Generate secure keys
 ├── package.json
 └── pnpm-workspace.yaml
 ```
