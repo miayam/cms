@@ -245,8 +245,8 @@ STACK_ENV=prod
 - **Strapi Admin Panel**: http://localhost:1338/admin
 - **Strapi API**: http://localhost:1338/api
 - **Email Testing UI**: http://localhost:8105 (development only)
-- **Stack Auth PostgreSQL**: localhost:5432
-- **Strapi PostgreSQL**: localhost:5433
+- **Stack Auth PostgreSQL**: `postgresql://localhost:5432`
+- **Strapi PostgreSQL**: `postgresql://localhost:5434`
 
 ## 🔑 Default Admin Credentials
 
