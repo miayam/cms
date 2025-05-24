@@ -34,16 +34,58 @@ Commands:
     status        Show container status
     db-shell      Access PostgreSQL shell
     clean         Remove all containers and volumes
-    gen-keys      Generate secure keys for Stack Auth and Svix
-    fix-svix      Fix Svix database issues
+    gen-keys      Generate secure keys for Stack Auth
     health        Check health of all services
+    init          Initialize environment and start services
 
 Examples:
+    ./run-stack-auth.sh init
     ./run-stack-auth.sh dev
     ./run-stack-auth.sh prod
     ./run-stack-auth.sh logs stack-auth
-    ./run-stack-auth.sh fix-svix
 EOF
+}
+
+# Create .env file if it doesn't exist
+create_env_file() {
+    if [ ! -f "$SCRIPT_DIR/.env" ]; then
+        print_color "Creating .env file with secure keys..." "$YELLOW"
+
+        # Generate secure key immediately
+        SERVER_SECRET=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')
+
+        echo "# Core URLs" > "$SCRIPT_DIR/.env"
+        echo "NEXT_PUBLIC_STACK_API_URL=http://localhost:8102" >> "$SCRIPT_DIR/.env"
+        echo "NEXT_PUBLIC_STACK_DASHBOARD_URL=http://localhost:8101" >> "$SCRIPT_DIR/.env"
+        echo "" >> "$SCRIPT_DIR/.env"
+        echo "# Database connection" >> "$SCRIPT_DIR/.env"
+        echo "DATABASE_URL=postgresql://stack_auth:stack_auth_password@postgres:5432/stack_auth" >> "$SCRIPT_DIR/.env"
+        echo "" >> "$SCRIPT_DIR/.env"
+        echo "# Server secret key" >> "$SCRIPT_DIR/.env"
+        echo "STACK_SECRET_SERVER_KEY=$SERVER_SECRET" >> "$SCRIPT_DIR/.env"
+        echo "" >> "$SCRIPT_DIR/.env"
+        echo "# Development or Production mode" >> "$SCRIPT_DIR/.env"
+        echo "STACK_ENV=dev" >> "$SCRIPT_DIR/.env"
+        echo "" >> "$SCRIPT_DIR/.env"
+        echo "# Email settings for development" >> "$SCRIPT_DIR/.env"
+        echo "SMTP_HOST=inbucket" >> "$SCRIPT_DIR/.env"
+        echo "SMTP_PORT=2500" >> "$SCRIPT_DIR/.env"
+        echo "SMTP_SECURE=false" >> "$SCRIPT_DIR/.env"
+        echo "SMTP_USER=" >> "$SCRIPT_DIR/.env"
+        echo "SMTP_PASSWORD=" >> "$SCRIPT_DIR/.env"
+        echo "SMTP_FROM_NAME=Stack Auth" >> "$SCRIPT_DIR/.env"
+        echo "SMTP_FROM_EMAIL=noreply@example.com" >> "$SCRIPT_DIR/.env"
+        echo "" >> "$SCRIPT_DIR/.env"
+        echo "# Default admin user settings" >> "$SCRIPT_DIR/.env"
+        echo "STACK_SEED_INTERNAL_PROJECT_SIGN_UP_ENABLED=true" >> "$SCRIPT_DIR/.env"
+        echo "STACK_SEED_INTERNAL_PROJECT_OTP_ENABLED=false" >> "$SCRIPT_DIR/.env"
+        echo "STACK_SEED_INTERNAL_PROJECT_ALLOW_LOCALHOST=true" >> "$SCRIPT_DIR/.env"
+        echo "STACK_SEED_INTERNAL_PROJECT_USER_EMAIL=admin@example.com" >> "$SCRIPT_DIR/.env"
+        echo "STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=StrongPassword123" >> "$SCRIPT_DIR/.env"
+        echo "STACK_SEED_INTERNAL_PROJECT_USER_INTERNAL_ACCESS=true" >> "$SCRIPT_DIR/.env"
+
+        print_color "✅ Created .env file with secure key: $SERVER_SECRET" "$GREEN"
+    fi
 }
 
 # Check if .env file exists
@@ -55,11 +97,34 @@ check_env_file() {
             cp "$SCRIPT_DIR/.env.template" "$SCRIPT_DIR/.env"
             print_color "✅ Created .env file from template" "$GREEN"
         else
-            print_color "❌ .env.template not found in $SCRIPT_DIR!" "$RED"
-            print_color "Please create $SCRIPT_DIR/.env file manually" "$RED"
-            exit 1
+            create_env_file
         fi
     fi
+}
+
+# Initialize environment
+init_environment() {
+    print_color "🚀 Initializing Stack Auth environment..." "$GREEN"
+
+    # Create .env file with actual generated keys
+    create_env_file
+
+    # Check Docker
+    if ! command -v docker &> /dev/null; then
+        print_color "❌ Docker is not installed!" "$RED"
+        exit 1
+    fi
+
+    if ! command -v docker-compose &> /dev/null; then
+        print_color "❌ Docker Compose is not installed!" "$RED"
+        exit 1
+    fi
+
+    print_color "✅ Environment initialized successfully!" "$GREEN"
+    print_color "Starting Stack Auth..." "$BLUE"
+
+    # Start development mode
+    start_dev
 }
 
 # Generate secure keys
@@ -76,17 +141,6 @@ generate_keys() {
     print_color "Database Password: $DB_PASSWORD" "$GREEN"
     print_color "Update these in your .env file:" "$YELLOW"
     print_color "  DATABASE_URL=postgresql://stack_auth:$DB_PASSWORD@postgres:5432/stack_auth" "$BLUE"
-
-    # Generate Svix API key
-    SVIX_API_KEY="sk_test_$(openssl rand -hex 16)"
-    print_color "Svix API Key: $SVIX_API_KEY" "$GREEN"
-    print_color "Add this to your .env file as STACK_SVIX_API_KEY" "$YELLOW"
-
-    # Generate Svix JWT secret
-    SVIX_JWT_SECRET="sv-$(openssl rand -hex 32)"
-    print_color "Svix JWT Secret: $SVIX_JWT_SECRET" "$GREEN"
-    print_color "Add this to your .env file as SVIX_JWT_SECRET" "$YELLOW"
-
     print_color "✅ All keys generated. Use these to update your .env file." "$GREEN"
 }
 
@@ -113,34 +167,6 @@ update_env_mode() {
     print_color "✅ Updated .env file with STACK_ENV=$mode" "$GREEN"
 }
 
-# Fix Svix database issues
-fix_svix() {
-    print_color "🔧 Fixing Svix database issues..." "$YELLOW"
-
-    cd "$SCRIPT_DIR"
-
-    # Stop Svix first
-    print_color "Stopping Svix service..." "$YELLOW"
-    docker-compose stop svix 2>/dev/null || true
-
-    # Create svix database
-    print_color "Creating svix database..." "$YELLOW"
-    docker-compose exec postgres createdb -U stack_auth svix 2>/dev/null || print_color "Database might already exist" "$YELLOW"
-
-    # Verify databases exist
-    print_color "Verifying databases..." "$YELLOW"
-    docker-compose exec postgres psql -U stack_auth -l | grep -E "(stack_auth|svix)" || print_color "Could not verify databases" "$RED"
-
-    # Start Svix
-    print_color "Starting Svix service..." "$YELLOW"
-    docker-compose up -d svix
-
-    # Wait and check health
-    sleep 10
-    print_color "Checking Svix health..." "$YELLOW"
-    curl -s http://localhost:8071/api/v1/health/ && print_color "✅ Svix is healthy" "$GREEN" || print_color "❌ Svix health check failed" "$RED"
-}
-
 # Check health of all services
 health_check() {
     print_color "🏥 Checking health of all services..." "$BLUE"
@@ -165,14 +191,6 @@ health_check() {
         print_color "✅ Redis is responding" "$GREEN"
     else
         print_color "❌ Redis is not responding" "$RED"
-    fi
-
-    # Check Svix
-    print_color "\n🪝 Svix Health:" "$BLUE"
-    if curl -s http://localhost:8071/api/v1/health/ >/dev/null 2>&1; then
-        print_color "✅ Svix is healthy" "$GREEN"
-    else
-        print_color "❌ Svix is not healthy" "$RED"
     fi
 
     # Check Stack Auth
@@ -214,7 +232,6 @@ start_dev() {
     print_color "📊 Dashboard: http://localhost:8101" "$GREEN"
     print_color "🔌 API: http://localhost:8102" "$GREEN"
     print_color "📧 Email testing: http://localhost:8105" "$GREEN"
-    print_color "🪝 Svix API: http://localhost:8071" "$GREEN"
     print_color "All emails will be captured by Inbucket" "$YELLOW"
 
     # Run health check
@@ -259,7 +276,6 @@ start_prod() {
     print_color "✅ Stack Auth started in PRODUCTION mode" "$GREEN"
     print_color "📊 Dashboard: http://localhost:8101" "$GREEN"
     print_color "🔌 API: http://localhost:8102" "$GREEN"
-    print_color "🪝 Svix API: http://localhost:8071" "$GREEN"
     print_color "Using email settings from .env file" "$YELLOW"
 
     # Run health check
@@ -324,7 +340,6 @@ status() {
     print_color "Dashboard: http://localhost:8101" "$GREEN"
     print_color "API: http://localhost:8102" "$GREEN"
     print_color "Email testing: http://localhost:8105" "$GREEN"
-    print_color "Svix API: http://localhost:8071" "$GREEN"
 }
 
 # Database shell
@@ -333,8 +348,8 @@ db_shell() {
     cd "$SCRIPT_DIR"
 
     # Get the user and database name from .env file
-    DB_USER=$(grep "POSTGRES_USER\|DATABASE_USERNAME" "$SCRIPT_DIR/.env" | head -1 | cut -d '=' -f2)
-    DB_NAME=$(grep "POSTGRES_DB\|DATABASE_NAME" "$SCRIPT_DIR/.env" | head -1 | cut -d '=' -f2)
+    DB_USER=$(grep "POSTGRES_USER\|DATABASE_USERNAME" "$SCRIPT_DIR/.env" 2>/dev/null | head -1 | cut -d '=' -f2)
+    DB_NAME=$(grep "POSTGRES_DB\|DATABASE_NAME" "$SCRIPT_DIR/.env" 2>/dev/null | head -1 | cut -d '=' -f2)
 
     # Use default values if not found
     DB_USER=${DB_USER:-stack_auth}
@@ -370,8 +385,10 @@ clean() {
 
 # Main script logic
 main() {
-    # Check for .env file
-    check_env_file
+    # Check for .env file (except for init command)
+    if [ "$1" != "init" ] && [ "$1" != "gen-keys" ] && [ "$1" != "--help" ] && [ "$1" != "-h" ]; then
+        check_env_file
+    fi
 
     if [ $# -eq 0 ]; then
         show_help
@@ -380,6 +397,9 @@ main() {
 
     command="$1"
     case "$command" in
+        init)
+            init_environment
+            ;;
         dev)
             start_dev
             ;;
@@ -407,11 +427,11 @@ main() {
         gen-keys)
             generate_keys
             ;;
-        fix-svix)
-            fix_svix
-            ;;
         health)
             health_check
+            ;;
+        --help|-h)
+            show_help
             ;;
         *)
             print_color "❌ Unknown command: $command" "$RED"

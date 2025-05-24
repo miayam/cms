@@ -8,23 +8,8 @@ An all-in-one, self-hosted CMS platform for your side hustles (blogging, newslet
 # Install dependencies
 pnpm install
 
-# Generate secure keys
-pnpm generate:keys
-
-# Create and configure the .env file for Stack Auth
-cp docker/stack-auth/.env.template docker/stack-auth/.env
-# Edit the .env file with your settings
-vi docker/stack-auth/.env
-
-# Create and configure the .env file for Strapi
-cp apps/strapi/.env.example apps/strapi/.env
-# Edit the .env file with your Strapi settings
-vi apps/strapi/.env
-# Start Stack Auth in development mode
-pnpm stack-auth:start
-
-# Start Strapi in development mode
-pnpm strapi:dev
+# Start Stack Auth and Strapi in development mode
+pnpm dev
 ```
 
 ## 📋 Available Commands
@@ -33,12 +18,7 @@ pnpm strapi:dev
 
 ```bash
 # Start Stack Auth in development mode (uses Inbucket for email)
-pnpm stack-auth:start
-# or
-pnpm stack-auth:start:dev
-
-# Start Stack Auth in production mode (uses configured email provider)
-pnpm stack-auth:start:prod
+pnpm stack-auth:init
 
 # Stop Stack Auth
 pnpm stack-auth:stop
@@ -145,16 +125,6 @@ cms/
    openssl rand -base64 24 | tr -dc 'a-zA-Z0-9'
    ```
 
-   c. For Svix API Key:
-   ```bash
-   echo "sv-$(openssl rand -hex 16)"
-   ```
-
-   d. For Svix JWT Secret:
-   ```bash
-   echo "sv-$(openssl rand -hex 32)"
-   ```
-
 4. Your `.env` file should include these essential configurations:
 
 ```env
@@ -179,12 +149,6 @@ SMTP_USER=
 SMTP_PASSWORD=
 SMTP_FROM_NAME=Stack Auth
 SMTP_FROM_EMAIL=noreply@example.com
-
-# Svix webhooks configuration
-STACK_SVIX_SERVER_URL=http://svix:8071
-NEXT_PUBLIC_STACK_SVIX_SERVER_URL=http://localhost:8071
-STACK_SVIX_API_KEY=YOUR_GENERATED_SVIX_API_KEY
-SVIX_JWT_SECRET=YOUR_GENERATED_SVIX_JWT_SECRET
 
 # Seed script settings
 STACK_SEED_INTERNAL_PROJECT_SIGN_UP_ENABLED=true
@@ -289,7 +253,6 @@ The webhooks are configured automatically with the settings in your `.env` file.
 - **Strapi Admin Panel**: http://localhost:1338/admin
 - **Strapi API**: http://localhost:1338/api
 - **Email Testing UI**: http://localhost:8105 (development only)
-- **Svix API**: http://localhost:8071
 - **Stack Auth PostgreSQL**: localhost:5432
 - **Strapi PostgreSQL**: localhost:5433
 

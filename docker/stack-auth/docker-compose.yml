@@ -36,11 +36,6 @@ services:
       - STACK_EMAIL_PASSWORD=${SMTP_PASSWORD}
       - STACK_EMAIL_SENDER=${SMTP_FROM_EMAIL}
       - STACK_EMAIL_SENDER_NAME=${SMTP_FROM_NAME}
-
-      # Svix webhooks configuration
-      - STACK_SVIX_SERVER_URL=${STACK_SVIX_SERVER_URL}
-      - NEXT_PUBLIC_STACK_SVIX_SERVER_URL=${NEXT_PUBLIC_STACK_SVIX_SERVER_URL}
-      - STACK_SVIX_API_KEY=${STACK_SVIX_API_KEY}
     depends_on:
       - postgres
       - inbucket
@@ -60,7 +55,6 @@ services:
       POSTGRES_DB: stack_auth
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-svix-db.sql:/docker-entrypoint-initdb.d/init-svix-db.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -84,23 +78,7 @@ services:
     profiles:
       - ${STACK_ENV:-dev}
 
-  # Svix for webhooks
-  svix:
-    image: svix/svix-server:latest
-    ports:
-      - "8071:8071" # Svix API
-    environment:
-      - SVIX_JWT_SECRET=${SVIX_JWT_SECRET}
-      - SVIX_DB_DSN=postgresql://stack_auth:stack_auth_password@postgres:5432/stack_auth
-      - SVIX_LISTEN_ADDRESS=0.0.0.0:8071
-    networks:
-      - default
-    profiles:
-      - ${STACK_ENV:-dev}
-      - prod
-    restart: unless-stopped
-
-  # Redis for Svix
+  # Redis
   redis:
     image: redis:7-alpine
     ports:
