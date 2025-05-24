@@ -21,7 +21,7 @@ pnpm dev
 
 ```bash
 # Start Stack Auth in development mode (uses Inbucket for email)
-pnpm stack-auth:init
+pnpm stack-auth:start
 
 # Stop Stack Auth
 pnpm stack-auth:stop
@@ -290,7 +290,6 @@ _Automate the regeneration of your static sites with seamless integration to Net
 3. **Stack Auth integration issues**:
    - Verify API keys and endpoints
    - Check CORS settings in both Stack Auth and Strapi
-   - Ensure webhook endpoints are accessible
 
 4. **Plugin development issues**:
    - Run `pnpm strapi:build` after making changes
