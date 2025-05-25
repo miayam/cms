@@ -130,4 +130,4 @@ build
 .strapi-updater.json
 .strapi-cloud.json
 # Strapi generated types
-apps/strapi/types/generated/
+types/generated/
