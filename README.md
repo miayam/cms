@@ -21,7 +21,7 @@ pnpm dev
 
 ```bash
 # Start Stack Auth in development mode (uses Inbucket for email)
-pnpm stack-auth:start
+pnpm stack-auth:dev
 
 # Stop Stack Auth
 pnpm stack-auth:stop
@@ -42,20 +42,20 @@ pnpm stack-auth:clean
 ### 🏗️ Strapi Commands
 
 ```bash
-# Start Strapi in development mode
+# Start Strapi in development mode (dependencies + native)
 pnpm strapi:dev
-
-# Start Strapi in production mode
-pnpm strapi:start
-
-# Build Strapi for production
-pnpm strapi:build
 
 # Stop Strapi containers
 pnpm strapi:stop
 
+# Restart Strapi containers
+pnpm strapi:restart
+
 # View Strapi logs
 pnpm strapi:logs
+
+# View Strapi database logs
+pnpm strapi:logs:db
 
 # Access Strapi database shell (PostgreSQL)
 pnpm strapi:db-shell
@@ -65,37 +65,35 @@ pnpm strapi:clean
 
 # Reset Strapi database (WARNING: This will delete all data)
 pnpm strapi:reset
-
-# Generate Strapi admin user
-pnpm strapi:admin
 ```
 
 ## 📦 Structure
 
 ```
 cms/
-├── apps/                       # Your applications
-│   └── strapi/                 # Strapi CMS
+├── apps/                           # Your applications
+│   └── strapi/                     # Strapi CMS
 │       ├── src/
-│       │   ├── api/            # Strapi API routes
-│       │   ├── components/     # Strapi components
-│       │   ├── extensions/     # Strapi extensions
-│       │   └── plugins/        # Custom Strapi plugins
-│       ├── config/             # Strapi configuration
-│       ├── docker-compose.yml  # Strapi Docker setup
-│       ├── Dockerfile          # Strapi Docker image
-│       ├── .env.example        # Strapi environment template
-│       ├── setup-strapi-env.sh # Generate .env for development
+│       │   ├── api/                # Strapi API routes
+│       │   ├── components/         # Strapi components
+│       │   ├── extensions/         # Strapi extensions
+│       │   └── plugins/            # Custom Strapi plugins
+│       ├── config/                 # Strapi configuration
+│       ├── docker-compose.dev.yml  # Strapi Docker setup for development
+│       ├── docker-compose.prod.yml # Strapi Docker setup for production
+│       ├── Dockerfile              # Strapi Docker image for production
+│       ├── .env.example            # Strapi environment template
+│       ├── setup-strapi-env.sh     # Generate .env for development
 │       └── package.json
 ├── docker/
-│   └── stack-auth/             # Stack Auth configuration
+│   └── stack-auth/                 # Stack Auth configuration
 │       ├── docker-compose.yml
-│       ├── .env.template       # Environment config template
-│       ├── .env                # Environment config (create from .env.template)
+│       ├── .env.template           # Environment config template
+│       ├── .env                    # Environment config (create from .env.template)
 │       └── run-stack-auth.sh
-├── packages/                   # Shared packages
-│   ├── diajar-notes/           # Notes-taking plugin for Strapi (shared publicly)
-│   ├── jamhook/                # Jamstack build management
+├── packages/                       # Shared packages
+│   ├── diajar-notes/               # Notes-taking plugin for Strapi (shared publicly)
+│   ├── jamhook/                    # Jamstack build management
 │   └── ...
 ├── package.json
 └── pnpm-workspace.yaml
@@ -105,29 +103,12 @@ cms/
 
 ### 🔧 Setting Up Stack Auth
 
-1. Create `.env` file from template:
+1. Initialize Stack Auth with automatically generated secure keys:
    ```bash
-   cp docker/stack-auth/.env.template docker/stack-auth/.env
+   pnpm stack-auth:init
    ```
 
-2. Edit `.env` with your settings:
-   ```bash
-   nano docker/stack-auth/.env
-   ```
-
-3. Generate required secure keys and update the `.env` file:
-
-   a. For `STACK_SECRET_SERVER_KEY`:
-   ```bash
-   openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
-   ```
-
-   b. For database password:
-   ```bash
-   openssl rand -base64 24 | tr -dc 'a-zA-Z0-9'
-   ```
-
-4. Your `.env` file should include these essential configurations:
+2. Your Stack Auth `.env` file will include these essential configurations:
 
 ```env
 # Core URLs
@@ -135,7 +116,7 @@ NEXT_PUBLIC_STACK_API_URL=http://localhost:8102
 NEXT_PUBLIC_STACK_DASHBOARD_URL=http://localhost:8101
 
 # Database connection
-DATABASE_URL=postgresql://stack_auth:YOUR_GENERATED_PASSWORD@postgres:5432/stack_auth
+DATABASE_URL=postgresql://stack_auth:stack_auth_password@postgres:5432/stack_auth
 
 # Server secret key
 STACK_SECRET_SERVER_KEY=YOUR_GENERATED_SECRET
@@ -161,56 +142,48 @@ STACK_SEED_INTERNAL_PROJECT_USER_PASSWORD=StrongPassword123
 STACK_SEED_INTERNAL_PROJECT_USER_INTERNAL_ACCESS=true
 ```
 
+3. Review and customize the generated `.env` file if needed
+
 ### 🏗️ Setting Up Strapi
 
-1. Create `.env` file from example:
+1. Initialize Strapi with automatically generated secure keys:
    ```bash
-   cp apps/strapi/.env.example apps/strapi/.env
+   pnpm strapi:init
    ```
 
-2. Generate required secure keys for Strapi:
-
-   a. For `JWT_SECRET`:
-   ```bash
-   openssl rand -base64 32
-   ```
-
-   b. For `ADMIN_JWT_SECRET`:
-   ```bash
-   openssl rand -base64 32
-   ```
-
-   c. For `APP_KEYS` (generate 4 keys):
-   ```bash
-   echo "$(openssl rand -base64 32),$(openssl rand -base64 32),$(openssl rand -base64 32),$(openssl rand -base64 32)"
-   ```
-
-3. Your Strapi `.env` file should include:
+2. Your Strapi `.env` file will include:
 
 ```env
-# Secrets
-JWT_SECRET=YOUR_GENERATED_JWT_SECRET
-ADMIN_JWT_SECRET=YOUR_GENERATED_ADMIN_JWT_SECRET
+# Server Configuration
+HOST=0.0.0.0
+PORT=1337
 APP_KEYS=YOUR_GENERATED_APP_KEYS
+API_TOKEN_SALT=YOUR_GENERATED_API_TOKEN_SALT
+ADMIN_JWT_SECRET=YOUR_GENERATED_ADMIN_JWT_SECRET
+TRANSFER_TOKEN_SALT=YOUR_GENERATED_TRANSFER_TOKEN_SALT
+JWT_SECRET=YOUR_GENERATED_JWT_SECRET
 
-# Database
+# Database Configuration (for development with Docker dependencies)
 DATABASE_CLIENT=postgres
 DATABASE_HOST=localhost
 DATABASE_PORT=5433
 DATABASE_NAME=strapi
 DATABASE_USERNAME=strapi
 DATABASE_PASSWORD=strapi
+DATABASE_SSL=false
 
 # Environment
 NODE_ENV=development
 ```
+
+3. Review and customize the generated `.env` file if needed
 
 4. Start Strapi services:
    ```bash
    pnpm strapi:dev
    ```
 
-5. Access Strapi admin panel at http://localhost:1338/admin and create your first admin user.
+5. Access Strapi admin panel at http://localhost:1337/admin and create your first admin user.
 
 ### 📧 Email Configuration
 
@@ -242,11 +215,11 @@ STACK_ENV=prod
 
 - **Stack Auth Dashboard**: http://localhost:8101
 - **Stack Auth API**: http://localhost:8102
-- **Strapi Admin Panel**: http://localhost:1338/admin
-- **Strapi API**: http://localhost:1338/api
+- **Strapi Admin Panel**: http://localhost:1337/admin
+- **Strapi API**: http://localhost:1337/api
 - **Email Testing UI**: http://localhost:8105 (development only)
 - **Stack Auth PostgreSQL**: `postgresql://localhost:5432`
-- **Strapi PostgreSQL**: `postgresql://localhost:5434`
+- **Strapi PostgreSQL**: `postgresql://localhost:5433`
 
 ## 🔑 Default Admin Credentials
 
@@ -276,7 +249,7 @@ _Automate the regeneration of your static sites with seamless integration to Net
 
 #### ⚠️ Common Issues
 
-1. **Port conflicts**: Make sure ports 1338, 5433, 8101, 8102, 8105, and 8071 are available.
+1. **Port conflicts**: Make sure ports 1337, 5433, 8101, 8102, 8105, and 8071 are available.
 
 2. **Database connection issues**:
    - Check if PostgreSQL containers are running

@@ -35,8 +35,21 @@ Examples:
 EOF
 }
 
+# Check if openssl is available
+check_openssl() {
+    if ! command -v openssl &> /dev/null; then
+        print_color "❌ OpenSSL is not installed!" "$RED"
+        print_color "Please install OpenSSL:" "$YELLOW"
+        print_color "  Ubuntu/Debian: sudo apt update && sudo apt install openssl" "$NC"
+        print_color "  CentOS/RHEL: sudo yum install openssl" "$NC"
+        print_color "  Alpine: apk add openssl" "$NC"
+        exit 1
+    fi
+}
+
 # Generate secure tokens for Strapi
 generate_strapi_tokens() {
+    check_openssl
     print_color "Generating secure tokens for Strapi..." "$GREEN"
 
     # Generate APP_KEYS (4 keys separated by commas)
@@ -70,6 +83,8 @@ generate_strapi_tokens() {
 
 # Create .env file for Strapi
 create_strapi_env() {
+    check_openssl
+
     if [ -f "$SCRIPT_DIR/.env" ]; then
         print_color "⚠️ .env file already exists, overwriting..." "$YELLOW"
     fi
@@ -99,10 +114,10 @@ ADMIN_JWT_SECRET=$ADMIN_JWT_SECRET
 TRANSFER_TOKEN_SALT=$TRANSFER_TOKEN_SALT
 JWT_SECRET=$JWT_SECRET
 
-# Database Configuration
+# Database Configuration (for development with Docker dependencies)
 DATABASE_CLIENT=postgres
-DATABASE_HOST=strapiDB
-DATABASE_PORT=5432
+DATABASE_HOST=localhost
+DATABASE_PORT=5433
 DATABASE_NAME=strapi
 DATABASE_USERNAME=strapi
 DATABASE_PASSWORD=strapi
@@ -149,12 +164,14 @@ EOF
     print_color "1. Review the .env file and customize as needed" "$NC"
     print_color "2. Configure email settings if required" "$NC"
     print_color "3. Set up cloud storage if needed" "$NC"
-    print_color "4. Start Strapi with: docker-compose up -d" "$NC"
-    print_color "5. Access Strapi admin at: http://localhost:1338/admin" "$NC"
+    print_color "4. Start Strapi with: pnpm strapi:dev" "$NC"
+    print_color "5. Access Strapi admin at: http://localhost:1337/admin" "$NC"
 }
 
 # Display generated tokens (for manual copying)
 show_generated_tokens() {
+    check_openssl
+
     print_color "Generated Strapi tokens:" "$GREEN"
     print_color "Copy these to your .env file:" "$YELLOW"
     print_color "" "$NC"
